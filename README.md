@@ -1,7 +1,7 @@
 # Slide_Quanitification
 This is an ongoing project inspired by the tedious work of quantifying images of stained slides, in hopes to alleviate the time it takes to achieve the accurate results
 
-To begin: download the environment.yml file and install through conda, and download the scripts as you intend to use it.
+To begin: download the environment.yml file and install through conda, and download the scripts as you intend to use it:
 
 - If you intend to help develop the script - download from the "still_developing" folder.
 - If you intend to test the script on your own data - download from the "ready_to_test" folder.
