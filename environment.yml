@@ -1,0 +1,15 @@
+name: ij-watershed
+channels:
+  - conda-forge
+dependencies:
+  - python=3.10
+  - openjdk=11
+  - pyimagej>=1.5
+  - scyjava
+  - jpype1
+  - numpy
+  - pandas
+  - imageio
+  - tifffile
+  - spyder
+
