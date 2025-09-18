@@ -24,8 +24,8 @@ from scyjava import jimport
 # =========================
 # ========= CONFIG ========
 # =========================
-INPUT_DIR  = r"PATH/TO/DAPI/IM"   # folder with images
-OUTPUT_DIR = r"CUSTOMIZE/PATH/TO/YOUR/LIKING"
+INPUT_DIR  = r"PATH/TO/DAPI/IMAGES"   # folder with images
+OUTPUT_DIR = r"CUSTOM/OR/ESTABLISHED/PATH/TO/YOUR/LIKING"
 
 # Threshold sweep: lower threshold from MIN_THR..MAX_THR (inclusive) with STEP
 MIN_THR, MAX_THR, STEP = 15, 200, 5
@@ -38,7 +38,7 @@ MAX_SIZE_PIXELS = 1e20
 BLACK_BACKGROUND = False   # False → objects white on black after Convert to Mask
 
 # Save controls
-SAVE_MASK = True
+SAVE_MASK = True                  # Save the visual of what is being quantified
 SAVE_BINARY_OUTLINE = False       # thin outline of saved mask (approx "Outlines")
 SAVE_ALL_TIES = False             # if True, save all thresholds tied for max; else save lowest threshold only
 
