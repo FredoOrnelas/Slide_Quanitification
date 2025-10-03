@@ -25,7 +25,7 @@ from scyjava import jimport
 # ========= CONFIG ========
 # =========================
 INPUT_DIR  = r"PATH/TO/DAPI/IMAGES"   # folder with images
-OUTPUT_DIR = r"CUSTOM/OR/ESTABLISHED/PATH/TO/YOUR/LIKING"
+OUTPUT_DIR = r"CUSTOM/OR/EXISTING/PATH/TO/YOUR/LIKING"
 
 # Threshold sweep: lower threshold from MIN_THR..MAX_THR (inclusive) with STEP
 MIN_THR, MAX_THR, STEP = 15, 200, 5
