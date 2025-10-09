@@ -1,14 +1,10 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Created on Sun Sep  7 19:46:43 2025
-
-@author: fredoornelas
+Edited: Adds saved overlays that show which objects were counted
+- Saves watershed mask (existing)
+- Saves overlay outlines of counted ROIs (new), on original or on mask
 """
-
-# ij_watershed_best_only.py
-# ImageJ watershed + particle counting (headless-safe) from Python/Spyder via PyImageJ.
-# Saves mask/outline ONLY for the threshold(s) that yield the max particle count per image.
 
 from pathlib import Path
 import numpy as np
@@ -21,11 +17,11 @@ sj_config.add_option("-Djava.awt.headless=true")  # enforce headless JVM
 import imagej
 from scyjava import jimport
 
-# =========================
-# ========= CONFIG ========
-# =========================
-INPUT_DIR  = r"PATH/TO/DAPI/IMAGES"   # folder with images
-OUTPUT_DIR = r"CUSTOM/OR/EXISTING/PATH/TO/YOUR/LIKING"
+# ===============================================================================
+# ========= CONFIG ==============================================================
+# ===============================================================================
+INPUT_DIR  = r"/PATH/TO/DAPI/IMAGES"
+OUTPUT_DIR = r"/PATH/TO/CUSTOM_OR_EXISTING/OUTPUT/FOLDER"
 
 # Threshold sweep: lower threshold from MIN_THR..MAX_THR (inclusive) with STEP
 MIN_THR, MAX_THR, STEP = 15, 200, 5
@@ -37,13 +33,24 @@ MAX_SIZE_PIXELS = 1e20
 # Polarity for Convert to Mask (matches setOption("BlackBackground", ...))
 BLACK_BACKGROUND = False   # False → objects white on black after Convert to Mask
 
-# Save controls
-SAVE_MASK = True                  # Save the visual of what is being quantified
-SAVE_BINARY_OUTLINE = False       # thin outline of saved mask (approx "Outlines")
-SAVE_ALL_TIES = False             # if True, save all thresholds tied for max; else save lowest threshold only
+# ====== Save controls ======
+SAVE_MASK = True                    # post-watershed binary mask (what gets analyzed)
+SAVE_BINARY_OUTLINE = False         # outline-only version of the mask
+SAVE_ALL_TIES = False               # if multiple thresholds tie, save them all
+
+# NEW: visibly show WHAT was counted
+SAVE_OVERLAY_OUTLINES = True        # save an overlay image with outlines of counted particles
+OVERLAY_ON_ORIGINAL   = True        # True: draw outlines on the original image; False: draw on the mask
+LABEL_PARTICLE_IDS    = False       # if True, overlay will include numbers near ROIs (headless-safe via "display")
+EXCLUDE_EDGE          = False       # if True, exclude particles touching image edge in the overlay/counter
 
 # File types to consider
 EXTS = {".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp"}
+# ===============================================================================
+# ===============================================================================
+# ===============================================================================
+
+#### FUNCTIONS
 
 # =========================
 # ====== INITIALIZE =======
@@ -77,6 +84,10 @@ def make_binary_outline(imp_bin):
     # ImageJ's Binary ▸ Outline (works headlessly)
     IJ.run(imp_bin, "Outline", "")
 
+def _size_range_str():
+    hi = "Infinity" if np.isinf(MAX_SIZE_PIXELS) else f"{float(MAX_SIZE_PIXELS):.0f}"
+    return f"{float(MIN_SIZE_PIXELS)}-{hi}"
+
 # =========================
 # ===== CORE ROUTINES =====
 # =========================
@@ -100,6 +111,40 @@ def count_particles(imp_binary):
     ok = pa.analyze(imp_binary)  # returns boolean
     return int(rt.getCounter())
 
+def _save_overlay_of_counted(mask_imp, base_imp_for_overlay, stem, thr_low, out_dir):
+    """
+    Run Analyze Particles on the (post-watershed) mask to generate an overlay of the ROIs,
+    then paste that overlay onto base_imp_for_overlay and save.
+    """
+    # Work on a throwaway duplicate to create the overlay
+    overlay_src = Duplicator().run(mask_imp)
+
+    parts = [f"size={_size_range_str()}",
+             "show=Overlay"]  # Overlay Outlines in headless mode
+    if LABEL_PARTICLE_IDS:
+        parts.append("display")     # include labels near each ROI
+    if EXCLUDE_EDGE:
+        parts.append("exclude")     # exclude edge-touching particles (optional)
+
+    # NOTE: We do NOT use "clear" or "add" to ROI Manager; we just want overlay on this temp image
+    opt_str = " ".join(parts)
+    IJ.run(overlay_src, "Analyze Particles...", opt_str)
+
+    # Transfer overlay to the chosen base (original or mask)
+    ov = overlay_src.getOverlay()
+    if ov is not None:
+        base_imp_for_overlay.setOverlay(ov)
+
+    # Convert to RGB to bake overlay and save
+    to_save = Duplicator().run(base_imp_for_overlay)
+    IJ.run(to_save, "RGB Color", "")
+    out_path = Path(out_dir) / f"{stem}__thr_{thr_low:03d}__overlay.png"
+    save_png(to_save, out_path)
+
+    # Cleanup
+    to_save.close()
+    overlay_src.close()
+
 def analyze_one_threshold(img_path, thr_low, save=False, out_dir=None):
     """
     Process one image at a single threshold; optionally save outputs.
@@ -117,15 +162,30 @@ def analyze_one_threshold(img_path, thr_low, save=False, out_dir=None):
             out_dir = Path(out_dir)
             ensure_dirs(out_dir)
             stem = Path(img_path).stem
+
+            # Save the post-watershed mask (what gets counted)
             if SAVE_MASK:
                 mask_path = out_dir / f"{stem}__thr_{thr_low:03d}__mask.png"
                 save_png(mask_imp, mask_path)
+
+            # Optional: outline-only of the mask
             if SAVE_BINARY_OUTLINE:
                 outline_imp = Duplicator().run(mask_imp)
                 make_binary_outline(outline_imp)
                 outlines_path = out_dir / f"{stem}__thr_{thr_low:03d}__outline.png"
                 save_png(outline_imp, outlines_path)
                 outline_imp.close()
+
+            # NEW: Overlay outlines that show exactly which particles were counted
+            if SAVE_OVERLAY_OUTLINES:
+                # Choose background to draw on
+                if OVERLAY_ON_ORIGINAL:
+                    base_for_overlay = Duplicator().run(imp)  # original image
+                else:
+                    base_for_overlay = Duplicator().run(mask_imp)  # binary mask
+
+                _save_overlay_of_counted(mask_imp, base_for_overlay, stem, thr_low, out_dir)
+                base_for_overlay.close()
 
         mask_imp.close()
         return count
