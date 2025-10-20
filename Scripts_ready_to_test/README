@@ -1,1 +1,4 @@
 # This Folder contains scripts that have been tested on a few datasets and work, but need to be tested by more datasets to confirm it works well.
+
+UPDATE:
+Stain_DAPI has been tested on 3 datasets (by Cristian Rodriguez, and Fredo Ornelas) and has been shown to replicate the reseults of manual ImageJ quantification.
