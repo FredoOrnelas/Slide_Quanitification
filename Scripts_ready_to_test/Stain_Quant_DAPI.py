@@ -6,20 +6,19 @@ Edited: Adds saved overlays that show which objects were counted
 - Saves overlay outlines of counted ROIs (new), on original or on mask
 """
 
+# Import Libraries
 from pathlib import Path
 import numpy as np
 import pandas as pd
-
-# ---- Configure JVM BEFORE importing imagej ----
 from scyjava import config as sj_config
 sj_config.add_option("-Djava.awt.headless=true")  # enforce headless JVM
-
 import imagej
 from scyjava import jimport
 
-# ===============================================================================
-# ========= CONFIG ==============================================================
-# ===============================================================================
+###########################################################
+############# INPUT SETTINGS ##############################
+###########################################################
+
 INPUT_DIR  = r"/PATH/TO/DAPI/IMAGES"
 OUTPUT_DIR = r"/PATH/TO/CUSTOM_OR_EXISTING/OUTPUT/FOLDER"
 
@@ -44,17 +43,13 @@ OVERLAY_ON_ORIGINAL   = True        # True: draw outlines on the original image;
 LABEL_PARTICLE_IDS    = False       # if True, overlay will include numbers near ROIs (headless-safe via "display")
 EXCLUDE_EDGE          = False       # if True, exclude particles touching image edge in the overlay/counter
 
+###########################################################
+###########################################################
+###########################################################
+
 # File types to consider
 EXTS = {".tif", ".tiff", ".png", ".jpg", ".jpeg", ".bmp"}
-# ===============================================================================
-# ===============================================================================
-# ===============================================================================
 
-#### FUNCTIONS
-
-# =========================
-# ====== INITIALIZE =======
-# =========================
 # Use Fiji to ensure all IJ1 commands exist; stay headless.
 ij = imagej.init('sc.fiji:fiji', mode='headless')
 
@@ -67,9 +62,8 @@ ParticleAnalyzer = jimport('ij.plugin.filter.ParticleAnalyzer')
 Measurements     = jimport('ij.measure.Measurements')
 ImageProcessor   = jimport('ij.process.ImageProcessor')
 
-# =========================
-# ========= HELPERS =======
-# =========================
+# Helper Functions
+
 def _p(pathlike):
     return str(Path(pathlike).resolve()).replace("\\", "/")
 
@@ -88,9 +82,8 @@ def _size_range_str():
     hi = "Infinity" if np.isinf(MAX_SIZE_PIXELS) else f"{float(MAX_SIZE_PIXELS):.0f}"
     return f"{float(MIN_SIZE_PIXELS)}-{hi}"
 
-# =========================
-# ===== CORE ROUTINES =====
-# =========================
+# Core Functions
+
 def make_mask_and_watershed(imp, thr_low):
     """Duplicate, 8-bit, threshold(thr_low..255), Convert to Mask, Watershed → return binary ImagePlus."""
     dup = Duplicator().run(imp)
